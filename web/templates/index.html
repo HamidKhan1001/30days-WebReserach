@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>last30days — Research what people actually care about</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="ambient">
+  <div class="ambient-orb ambient-orb-1"></div>
+  <div class="ambient-orb ambient-orb-2"></div>
+  <div class="ambient-orb ambient-orb-3"></div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-slash">/</span><span class="logo-name">last30days</span>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn" id="historyToggle" title="Research history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+      </button>
+    </nav>
+  </div>
+</header>
+
+<!-- History panel -->
+<aside class="history-panel" id="historyPanel">
+  <div class="history-header">
+    <h2>Recent Research</h2>
+    <button class="icon-btn" id="historyClose">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">No research yet</div>
+  </div>
+</aside>
+<div class="history-backdrop" id="historyBackdrop"></div>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- Hero section -->
+  <section class="hero" id="heroSection">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      AI agent-led · Multi-source · Real-time
+    </div>
+    <h1 class="hero-title">
+      What's the world<br />
+      <span class="hero-title-accent">actually saying?</span>
+    </h1>
+    <p class="hero-sub">
+      Search Reddit, X, YouTube, TikTok, Hacker News & more — scored by real engagement, not editors.
+    </p>
+
+    <!-- Search form -->
+    <div class="search-card" id="searchCard">
+      <form class="search-form" id="searchForm">
+        <div class="search-input-wrap">
+          <div class="search-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <input
+            type="text"
+            class="search-input"
+            id="topicInput"
+            placeholder="Peter Steinberger, OpenAI earnings, Kanye West…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="submit" class="search-btn" id="searchBtn">
+            <span class="search-btn-text">Research</span>
+            <svg class="search-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+
+        <div class="search-options">
+          <label class="toggle-option">
+            <input type="checkbox" id="competitorsCheck" />
+            <span class="toggle-track"></span>
+            <span class="toggle-label">Include competitors</span>
+          </label>
+          <div class="emit-select-wrap">
+            <select class="emit-select" id="emitSelect">
+              <option value="html">HTML brief</option>
+              <option value="compact">Compact</option>
+              <option value="full">Full</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Quick topics -->
+    <div class="quick-topics">
+      <span class="quick-label">Try:</span>
+      <button class="chip" data-topic="Claude Code">Claude Code</button>
+      <button class="chip" data-topic="OpenAI GPT-5">OpenAI GPT-5</button>
+      <button class="chip" data-topic="Anthropic">Anthropic</button>
+      <button class="chip" data-topic="Bitcoin">Bitcoin</button>
+      <button class="chip" data-topic="Taylor Swift">Taylor Swift</button>
+    </div>
+  </section>
+
+  <!-- Source grid -->
+  <section class="sources-section" id="sourcesSection">
+    <p class="sources-label">Sources searched in parallel</p>
+    <div class="sources-grid">
+      <div class="source-item" data-src="reddit"><span class="source-icon">🔴</span>Reddit</div>
+      <div class="source-item" data-src="x"><span class="source-icon">𝕏</span>X / Twitter</div>
+      <div class="source-item" data-src="youtube"><span class="source-icon">▶</span>YouTube</div>
+      <div class="source-item" data-src="tiktok"><span class="source-icon">♪</span>TikTok</div>
+      <div class="source-item" data-src="hn"><span class="source-icon">▲</span>Hacker News</div>
+      <div class="source-item" data-src="github"><span class="source-icon">⌥</span>GitHub</div>
+      <div class="source-item" data-src="polymarket"><span class="source-icon">📊</span>Polymarket</div>
+      <div class="source-item" data-src="web"><span class="source-icon">🌐</span>Web</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Research overlay -->
+<div class="research-overlay" id="researchOverlay">
+  <div class="research-panel">
+
+    <div class="research-header">
+      <div class="research-topic-wrap">
+        <span class="research-label">Researching</span>
+        <h2 class="research-topic" id="researchTopic">—</h2>
+      </div>
+      <button class="icon-btn research-close" id="researchClose" title="Cancel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-sources" id="progressSources"></div>
+    </div>
+
+    <!-- Live log -->
+    <div class="log-wrap">
+      <div class="log-header">
+        <span class="log-title">Live output</span>
+        <span class="log-badge" id="logBadge">running</span>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+
+    <!-- Result area -->
+    <div class="result-area" id="resultArea" style="display:none">
+      <div class="result-success">
+        <div class="result-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="result-text">
+          <div class="result-title">Research complete</div>
+          <div class="result-sub" id="resultSub"></div>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="action-btn action-btn-primary" id="viewBriefBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          View Brief
+        </button>
+        <button class="action-btn" id="newResearchBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Research
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Brief viewer modal -->
+<div class="brief-modal" id="briefModal">
+  <div class="brief-modal-header">
+    <button class="icon-btn brief-back" id="briefBack">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back
+    </button>
+    <span class="brief-modal-title" id="briefModalTitle"></span>
+    <div></div>
+  </div>
+  <iframe class="brief-iframe" id="briefIframe" sandbox="allow-same-origin allow-popups"></iframe>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
