@@ -14,10 +14,16 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
-app = Flask(__name__)
+WEB_DIR = Path(__file__).parent.resolve()
+app = Flask(
+    __name__,
+    template_folder=str(WEB_DIR / "templates"),
+    static_folder=str(WEB_DIR / "static"),
+    static_url_path="/static",
+)
 app.secret_key = os.urandom(24)
 
-SCRIPT_DIR = Path(__file__).parent.parent / "skills" / "last30days" / "scripts"
+SCRIPT_DIR = WEB_DIR.parent / "skills" / "last30days" / "scripts"
 LAST30_PY = SCRIPT_DIR / "last30days.py"
 SAVE_DIR = Path.home() / "Documents" / "Last30Days"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -226,5 +232,11 @@ def api_brief(slug: str):
 
 
 if __name__ == "__main__":
-    print("🌐 last30days web UI → http://localhost:7430")
+    if not LAST30_PY.exists():
+        print(f"ERROR: Cannot find research engine at {LAST30_PY}")
+        print("Make sure you run this from inside the repo root: python3 web/app.py")
+        sys.exit(1)
+    print(f"🌐 last30days web UI → http://localhost:7430")
+    print(f"   Engine: {LAST30_PY}")
+    print(f"   Briefs: {SAVE_DIR}")
     app.run(host="0.0.0.0", port=7430, debug=False, threaded=True)
