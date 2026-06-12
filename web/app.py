@@ -97,21 +97,24 @@ def _run_research(job_id: str, topic: str, emit: str, extra_flags: list[str]) ->
 
         if proc.returncode == 0:
             slug = _slugify(topic)
-            result_file = _find_output_file(slug)
-            result_path = str(result_file) if result_file else None
-            is_html = result_file is not None and result_file.suffix == ".html"
+            stdout_text = "".join(stdout_chunks)
+
+            # Always save the stdout (compact/full content) as the viewable brief
+            brief_path = SAVE_DIR / f"{slug}-brief.txt"
+            brief_path.write_text(stdout_text, encoding="utf-8")
+
+            result_file = _find_output_file(slug) or brief_path
 
             with _jobs_lock:
                 _jobs[job_id]["status"] = "done"
-                _jobs[job_id]["result_path"] = result_path
+                _jobs[job_id]["result_path"] = str(result_file)
                 _jobs[job_id]["slug"] = slug
-                _jobs[job_id]["output"] = "".join(stdout_chunks)
+                _jobs[job_id]["stdout"] = stdout_text
 
             send("done", json.dumps({
-                "result_path": result_path,
+                "result_path": str(result_file),
                 "slug": slug,
-                "has_html": is_html,
-                "filename": result_file.name if result_file else None,
+                "filename": result_file.name,
             }))
         else:
             err = "\n".join(stderr_lines[-10:])
@@ -230,25 +233,83 @@ def api_history():
     return jsonify(history)
 
 
+def _render_brief_html(content: str, topic: str) -> str:
+    """Wrap plain-text/markdown research output in a beautiful styled page."""
+    import html as _html
+    escaped = _html.escape(content)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>last30days · {_html.escape(topic)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {{
+  --bg:#0e0e10; --bg2:#18181b; --fg:#f4f4f6; --fg2:#a1a1aa; --fg3:#71717a;
+  --accent:#a855f7; --border:rgba(255,255,255,0.08); --green:#22c55e;
+}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+html,body{{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.7}}
+body{{max-width:800px;margin:0 auto;padding:2.5rem 1.5rem 5rem}}
+.badge{{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .9rem;
+  border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:#c084fc;margin-bottom:2rem}}
+.dot{{width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green)}}
+pre{{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:1.5rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;
+  font-size:13px;line-height:1.75;color:var(--fg2);white-space:pre-wrap;
+  word-break:break-word}}
+/* Highlight key lines */
+pre .line-header{{color:var(--accent);font-weight:600}}
+pre .line-ok{{color:var(--green)}}
+pre .line-stat{{color:#60a5fa}}
+</style>
+</head>
+<body>
+<div class="badge"><span class="dot"></span> last30days research · {_html.escape(topic)}</div>
+<pre id="content">{escaped}</pre>
+<script>
+// Colorize key lines
+const pre = document.getElementById('content');
+pre.innerHTML = pre.textContent.split('\\n').map(line => {{
+  const e = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (/^#/.test(line)) return '<span style="color:#a855f7;font-weight:700">'+e+'</span>';
+  if (/^✅|^✓/.test(line)) return '<span style="color:#22c55e">'+e+'</span>';
+  if (/^🌐|^last30days/.test(line)) return '<span style="color:#c084fc">'+e+'</span>';
+  if (/Reddit:|GitHub:|HN:|YouTube:|TikTok:|Poly/.test(line)) return '<span style="color:#60a5fa">'+e+'</span>';
+  if (/^[ \t]*[\\u2022\\u00b7\\u25b8\\u25ba\\-\\*]/.test(line)) return '<span style="color:#e4e4e7">'+e+'</span>';
+  if (/[0-9]+[ ]*(upvote|comment|star|view|like)/i.test(line)) return '<span style="color:#fbbf24">'+e+'</span>';
+  return e;
+}}).join('\\n');
+</script>
+</body>
+</html>"""
+
+
 @app.route("/api/brief/<path:slug>")
 def api_brief(slug: str):
-    # Find the best file for this slug
+    # Priority 1: saved stdout brief (always has content)
+    brief_txt = SAVE_DIR / f"{slug}-brief.txt"
+    if brief_txt.exists():
+        content = brief_txt.read_text(encoding="utf-8")
+        return _render_brief_html(content, slug.replace("-", " ").title()), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+    # Priority 2: engine HTML file (has content only if synthesis_md was provided)
     f = _find_output_file(slug)
     if f and f.exists():
         if f.suffix == ".html":
-            return f.read_text(encoding="utf-8"), 200, {"Content-Type": "text/html; charset=utf-8"}
-        else:
-            # Wrap markdown in a simple styled page
-            content = f.read_text(encoding="utf-8")
-            escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-body{{background:#0e0e10;color:#e4e4e7;font-family:'Inter',system-ui,sans-serif;
-max-width:760px;margin:0 auto;padding:3rem 1.5rem;line-height:1.7;font-size:16px}}
-pre{{background:#18181b;border:1px solid #27272a;border-radius:8px;padding:1rem;
-overflow-x:auto;font-size:13px;white-space:pre-wrap;word-break:break-word}}
-</style></head><body><pre>{escaped}</pre></body></html>"""
-            return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+            html_content = f.read_text(encoding="utf-8")
+            # Check if body has real content beyond badge/footer
+            if "<h1" in html_content or "<p>" in html_content:
+                return html_content, 200, {"Content-Type": "text/html; charset=utf-8"}
+        # Fall back to rendering as text
+        content = f.read_text(encoding="utf-8")
+        return _render_brief_html(content, slug.replace("-", " ").title()), 200, {"Content-Type": "text/html; charset=utf-8"}
+
     return jsonify({"error": "not found"}), 404
 
 
