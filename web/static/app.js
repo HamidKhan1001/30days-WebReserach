@@ -153,9 +153,9 @@ function closeOverlay() {
 }
 
 // ── Brief modal ──────────────────────────────────────────
-function openBrief(path, topic) {
-  briefModalTitle.textContent = topic || 'Brief';
-  briefIframe.src = `/api/brief/${encodeURIComponent(path.split('/').pop().replace('-brief.html', '').replace('-raw.md', ''))}`;
+function openBrief(slug, topic) {
+  briefModalTitle.textContent = topic || slug || 'Brief';
+  briefIframe.src = `/api/brief/${encodeURIComponent(slug)}`;
   briefModal.classList.add('open');
 }
 
