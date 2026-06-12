@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
-import time
 import uuid
 from pathlib import Path
 
@@ -28,9 +28,22 @@ LAST30_PY = SCRIPT_DIR / "last30days.py"
 SAVE_DIR = Path.home() / "Documents" / "Last30Days"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Active jobs: job_id -> {"queue": Queue, "status": str, "result_path": str|None}
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
+
+
+def _slugify(topic: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-") or "last30days"
+
+
+def _find_output_file(slug: str) -> Path | None:
+    """Find the most recently written file for this slug — any suffix the engine may use."""
+    candidates = sorted(
+        SAVE_DIR.glob(f"{slug}-raw*"),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
 
 
 def _run_research(job_id: str, topic: str, emit: str, extra_flags: list[str]) -> None:
@@ -83,20 +96,22 @@ def _run_research(job_id: str, topic: str, emit: str, extra_flags: list[str]) ->
         t.join(timeout=5)
 
         if proc.returncode == 0:
-            slug = topic.lower()
-            import re
-            slug = re.sub(r"[^a-z0-9]+", "-", slug).strip("-") or "last30days"
-            result_path = SAVE_DIR / f"{slug}-raw.md"
-            html_path = SAVE_DIR / f"{slug}-brief.html"
+            slug = _slugify(topic)
+            result_file = _find_output_file(slug)
+            result_path = str(result_file) if result_file else None
+            is_html = result_file is not None and result_file.suffix == ".html"
 
             with _jobs_lock:
                 _jobs[job_id]["status"] = "done"
-                _jobs[job_id]["result_path"] = str(html_path) if html_path.exists() else str(result_path)
+                _jobs[job_id]["result_path"] = result_path
+                _jobs[job_id]["slug"] = slug
                 _jobs[job_id]["output"] = "".join(stdout_chunks)
 
             send("done", json.dumps({
-                "result_path": str(html_path) if html_path.exists() else str(result_path),
-                "has_html": html_path.exists(),
+                "result_path": result_path,
+                "slug": slug,
+                "has_html": is_html,
+                "filename": result_file.name if result_file else None,
             }))
         else:
             err = "\n".join(stderr_lines[-10:])
@@ -166,10 +181,7 @@ def api_stream(job_id: str):
     return Response(
         stream_with_context(generate()),
         mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -188,55 +200,64 @@ def api_result(job_id: str):
 
 @app.route("/api/history")
 def api_history():
-    files = sorted(SAVE_DIR.glob("*-raw.md"), key=lambda f: f.stat().st_mtime, reverse=True)
-    html_files = sorted(SAVE_DIR.glob("*-brief.html"), key=lambda f: f.stat().st_mtime, reverse=True)
+    # Match all engine output files: *-raw*.html and *-raw.md
+    all_files = sorted(
+        list(SAVE_DIR.glob("*-raw*.html")) + list(SAVE_DIR.glob("*-raw*.md")),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
     history = []
-    seen = set()
-    for f in html_files:
-        slug = f.stem.replace("-brief", "")
-        if slug not in seen:
-            seen.add(slug)
-            topic = slug.replace("-", " ").title()
-            history.append({
-                "slug": slug,
-                "topic": topic,
-                "path": str(f),
-                "type": "html",
-                "modified": f.stat().st_mtime,
-            })
-    for f in files:
-        slug = f.stem.replace("-raw", "")
-        if slug not in seen:
-            seen.add(slug)
-            topic = slug.replace("-", " ").title()
-            history.append({
-                "slug": slug,
-                "topic": topic,
-                "path": str(f),
-                "type": "md",
-                "modified": f.stat().st_mtime,
-            })
-    return jsonify(history[:20])
+    seen_slugs: set[str] = set()
+    for f in all_files:
+        # Extract slug: everything before -raw
+        m = re.match(r"^(.+?)-raw", f.stem)
+        if not m:
+            continue
+        slug = m.group(1)
+        if slug in seen_slugs:
+            continue
+        seen_slugs.add(slug)
+        topic = slug.replace("-", " ").title()
+        history.append({
+            "slug": slug,
+            "topic": topic,
+            "filename": f.name,
+            "type": "html" if f.suffix == ".html" else "md",
+            "modified": f.stat().st_mtime,
+        })
+        if len(history) >= 20:
+            break
+    return jsonify(history)
 
 
 @app.route("/api/brief/<path:slug>")
 def api_brief(slug: str):
-    html_path = SAVE_DIR / f"{slug}-brief.html"
-    md_path = SAVE_DIR / f"{slug}-raw.md"
-    if html_path.exists():
-        return html_path.read_text(encoding="utf-8"), 200, {"Content-Type": "text/html; charset=utf-8"}
-    if md_path.exists():
-        content = md_path.read_text(encoding="utf-8")
-        return jsonify({"content": content, "type": "markdown"})
+    # Find the best file for this slug
+    f = _find_output_file(slug)
+    if f and f.exists():
+        if f.suffix == ".html":
+            return f.read_text(encoding="utf-8"), 200, {"Content-Type": "text/html; charset=utf-8"}
+        else:
+            # Wrap markdown in a simple styled page
+            content = f.read_text(encoding="utf-8")
+            escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+body{{background:#0e0e10;color:#e4e4e7;font-family:'Inter',system-ui,sans-serif;
+max-width:760px;margin:0 auto;padding:3rem 1.5rem;line-height:1.7;font-size:16px}}
+pre{{background:#18181b;border:1px solid #27272a;border-radius:8px;padding:1rem;
+overflow-x:auto;font-size:13px;white-space:pre-wrap;word-break:break-word}}
+</style></head><body><pre>{escaped}</pre></body></html>"""
+            return html, 200, {"Content-Type": "text/html; charset=utf-8"}
     return jsonify({"error": "not found"}), 404
 
 
 if __name__ == "__main__":
     if not LAST30_PY.exists():
         print(f"ERROR: Cannot find research engine at {LAST30_PY}")
-        print("Make sure you run this from inside the repo root: python3 web/app.py")
+        print("Run from repo root: python3 web/app.py")
         sys.exit(1)
-    print(f"🌐 last30days web UI → http://localhost:7430")
+    print("🌐 last30days web UI → http://localhost:7430")
     print(f"   Engine: {LAST30_PY}")
     print(f"   Briefs: {SAVE_DIR}")
     app.run(host="0.0.0.0", port=7430, debug=False, threaded=True)

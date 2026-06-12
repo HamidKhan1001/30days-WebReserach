@@ -197,7 +197,8 @@ async function loadHistory() {
     historyList.querySelectorAll('.history-item').forEach(el => {
       el.addEventListener('click', () => {
         closeHistory();
-        openBrief(el.dataset.slug, el.querySelector('.history-item-topic').textContent);
+        const topicText = el.querySelector('.history-item-topic').textContent;
+        openBrief(el.dataset.slug, topicText);
       });
     });
   } catch (e) {
@@ -264,11 +265,11 @@ function streamJob(jobId, topic) {
     es.close();
 
     currentResultPath = data.result_path;
-    resultSub.textContent = data.result_path ? data.result_path.split('/').pop() : '';
+    resultSub.textContent = data.filename || (data.result_path ? data.result_path.split('/').pop() : '');
     resultArea.style.display = 'block';
     searchBtn.disabled = false;
 
-    viewBriefBtn.onclick = () => openBrief(data.result_path, topic);
+    viewBriefBtn.onclick = () => openBrief(data.slug || topic, topic);
   });
 
   es.addEventListener('error', e => {
