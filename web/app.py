@@ -64,6 +64,9 @@ def _run_research(job_id: str, topic: str, emit: str, extra_flags: list[str]) ->
     ]
 
     try:
+        env = os.environ.copy()
+        home_bin = str(Path.home() / "bin")
+        env["PATH"] = home_bin + os.pathsep + env.get("PATH", "")
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -71,6 +74,7 @@ def _run_research(job_id: str, topic: str, emit: str, extra_flags: list[str]) ->
             text=True,
             bufsize=1,
             cwd=str(SCRIPT_DIR),
+            env=env,
         )
 
         stderr_lines: list[str] = []
