@@ -238,7 +238,7 @@ body {
   overflow-x: hidden;
 }
 
-.view--hidden { display: none; }
+.view--hidden { display: none !important; }
 
 .view--brief {
   display: flex;
