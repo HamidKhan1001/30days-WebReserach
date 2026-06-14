@@ -12,7 +12,6 @@ const viewSearch       = $('viewSearch');
 const viewResearch     = $('viewResearch');
 const viewBrief        = $('viewBrief');
 const researchTopic    = $('researchTopic');
-const progressFill     = $('progressFill');
 const sourceTags       = $('sourceTags');
 const logBody          = $('logBody');
 const statusBadge      = $('statusBadge');
@@ -58,22 +57,8 @@ function showView(name) {
 }
 
 // ── Progress ──────────────────────────────────
-function startProgress() {
-  progressVal = 2;
-  progressFill.style.width = '2%';
-  clearInterval(progressTimer);
-  progressTimer = setInterval(() => {
-    const gap = 90 - progressVal;
-    progressVal += gap * 0.035;
-    progressFill.style.width = progressVal.toFixed(1) + '%';
-  }, 350);
-}
-
-function finishProgress() {
-  clearInterval(progressTimer);
-  progressVal = 100;
-  progressFill.style.width = '100%';
-}
+function startProgress() { progressVal = 2; clearInterval(progressTimer); progressTimer = setInterval(() => { const gap = 90 - progressVal; progressVal += gap * 0.035; }, 350); }
+function finishProgress() { clearInterval(progressTimer); progressVal = 100; }
 
 // ── Log ───────────────────────────────────────
 function appendLog(text, cls = '') {

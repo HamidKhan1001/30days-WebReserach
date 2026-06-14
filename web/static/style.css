@@ -258,42 +258,13 @@ body {
 .hero {
   max-width: 680px;
   margin: 0 auto;
-  padding: 64px 24px 40px;
+  padding: 72px 24px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 14px;
-  border-radius: 99px;
-  border: 1px solid var(--c-border-2);
-  background: var(--c-surface-2);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--c-fg-2);
-  margin-bottom: 28px;
-  font-family: var(--mono);
-  letter-spacing: 0.01em;
-}
-
-.live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--c-green);
-  box-shadow: 0 0 8px var(--c-green);
-  animation: dotPulse 2s ease-in-out infinite;
-}
-
-@keyframes dotPulse {
-  0%,100% { opacity:1; box-shadow:0 0 8px var(--c-green); }
-  50%      { opacity:0.5; box-shadow:0 0 3px var(--c-green); }
-}
 
 .hero-title {
   font-size: clamp(36px, 6vw, 60px);
@@ -306,10 +277,7 @@ body {
 
 .hero-title em {
   font-style: normal;
-  background: linear-gradient(120deg, var(--c-accent) 0%, var(--c-accent-h) 60%, #60a5fa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--c-accent);
 }
 
 .hero-sub {
@@ -632,35 +600,7 @@ body {
   50%      { opacity:0.55; }
 }
 
-/* ── Progress bar ──────────────────────────── */
-.progress-track {
-  height: 2px;
-  background: var(--c-border);
-  position: relative;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--c-accent), var(--c-accent-h));
-  width: 0%;
-  transition: width 0.5s var(--ease);
-  position: relative;
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  top:0; right:0; bottom:0;
-  width:80px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35));
-  animation: sweep 1.2s ease-in-out infinite;
-}
-
-@keyframes sweep {
-  0%   { transform: translateX(80px); }
-  100% { transform: translateX(-200px); }
-}
+/* progress bar removed */
 
 /* ── Source tags ───────────────────────────── */
 .source-tags {
@@ -982,18 +922,40 @@ body {
   to   { opacity:1; transform:translateY(0); }
 }
 
-.hero-eyebrow  { animation: fadeUp 0.45s var(--ease) 0.05s both; }
-.hero-title    { animation: fadeUp 0.45s var(--ease) 0.12s both; }
-.hero-sub      { animation: fadeUp 0.45s var(--ease) 0.18s both; }
-.search-box    { animation: fadeUp 0.45s var(--ease) 0.22s both; }
-.search-options { animation: fadeUp 0.45s var(--ease) 0.26s both; }
-.chips         { animation: fadeUp 0.45s var(--ease) 0.30s both; }
-.source-grid-wrap { animation: fadeUp 0.45s var(--ease) 0.34s both; }
+.hero-title    { animation: fadeUp 0.4s var(--ease) 0.05s both; }
+.hero-sub      { animation: fadeUp 0.4s var(--ease) 0.12s both; }
+.search-box    { animation: fadeUp 0.4s var(--ease) 0.18s both; }
+.search-options { animation: fadeUp 0.4s var(--ease) 0.22s both; }
+.chips         { animation: fadeUp 0.4s var(--ease) 0.26s both; }
+.source-grid-wrap { animation: fadeUp 0.4s var(--ease) 0.30s both; }
 
 /* ── Responsive ────────────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
+  .research-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  :root { --sidebar-w: 0px; }
   .sidebar { display: none; }
-  .hero { padding-top: 40px; }
-  .source-grid { grid-template-columns: repeat(2,1fr); }
+  .topbar-menu { display: none; }
+  .hero { padding: 36px 20px 32px; }
+  .hero-title { font-size: clamp(28px, 8vw, 44px); }
+  .hero-sub { font-size: 14px; }
+  .search-box { padding: 8px 8px 8px 12px; }
+  .search-right { gap: 6px; }
+  .search-select { display: none; }
   .search-submit-text { display: none; }
+  .search-submit { padding: 8px 12px; }
+  .source-grid { grid-template-columns: repeat(2, 1fr); }
+  .source-grid-wrap { padding: 0 16px 40px; }
+  .research-layout { padding: 16px 16px 32px; gap: 14px; }
+  .modal { max-width: 100%; }
+  .modal-foot { flex-direction: column; }
+  .modal-foot .btn { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .source-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .chips { gap: 5px; }
+  .chip { font-size: 11.5px; padding: 4px 10px; }
 }
